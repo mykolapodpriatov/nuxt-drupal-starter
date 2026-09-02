@@ -1,0 +1,60 @@
+{
+  "name": "nuxt-drupal-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-oriented Nuxt starter for decoupled Drupal: typed JSON:API, preview workflows, cache invalidation, Webform and media handling.",
+  "license": "MIT",
+  "author": "Mykola Podpriatov",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mykolapodpriatov/nuxt-drupal-starter.git"
+  },
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,vue,json,md,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,vue,json,md,yml}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "verify": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+  },
+  "dependencies": {
+    "nuxt": "^4.5.2",
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.1",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.17.0",
+    "@nuxt/test-utils": "^4.2.0",
+    "@playwright/test": "^1.58.2",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vue/test-utils": "^2.5.0",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.13.1",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.11"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  // Nuxt generates four projects and maps `test/nuxt/**` into the app project
+  // (that is where component tests using the Nuxt environment belong). Plain
+  // node-environment specs sitting directly in `test/` land in no project at
+  // all, which makes type-aware ESLint refuse to parse them.
+  //
+  // Giving the directory its own project fixes that without editing generated
+  // files. It extends the node project so `nuxt.config.ts` — which several
+  // specs import — resolves with the same types the config itself is written
+  // against.
+  "extends": "../.nuxt/tsconfig.node.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["./**/*.ts", "../nuxt.config.ts", "../vitest.config.ts"],
+  // `test/nuxt/**` belongs to Nuxt's generated app project, not this one.
+  "exclude": ["./nuxt/**/*"]
+}

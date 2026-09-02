@@ -1,0 +1,4 @@
+.nuxt
+.output
+coverage
+pnpm-lock.yaml
