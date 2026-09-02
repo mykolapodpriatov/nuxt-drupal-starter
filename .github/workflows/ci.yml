@@ -108,3 +108,36 @@ jobs:
       # pass vacuously, which is worse than not having it.
       - name: Scan the client bundle for leaked secrets
         run: pnpm run test:scan
+
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Only Chromium, and only its own dependencies: three browsers would
+      # triple the run for findings that are almost always identical.
+      - run: pnpm exec playwright install --with-deps chromium
+
+      # Playwright's webServer config builds and serves the app itself, so this
+      # runs against production output rather than the dev server. Dev-only
+      # behaviour is different behaviour, and a suite that passes there and
+      # fails in production is worse than no suite.
+      - run: pnpm run test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

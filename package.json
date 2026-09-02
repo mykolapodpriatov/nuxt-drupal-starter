@@ -31,7 +31,8 @@
     "test:e2e": "playwright test",
     "verify": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "snapshot:content": "tsx scripts/snapshot-content.ts",
-    "test:scan": "vitest run --config vitest.config.scan.ts"
+    "test:scan": "vitest run --config vitest.config.scan.ts",
+    "screenshots": "tsx scripts/screenshots.ts"
   },
   "dependencies": {
     "nuxt": "^4.5.2",
@@ -40,6 +41,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@nuxt/eslint": "^1.17.0",
     "@nuxt/test-utils": "^4.2.0",
     "@playwright/test": "^1.58.2",

@@ -32,7 +32,10 @@ export default withNuxt(
     files: ['**/*.ts'],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        // `playwright.config.ts` sits at the root and belongs to none of Nuxt's
+        // generated projects; `allowDefaultProject` lets it be linted
+        // syntactically without inventing a fifth tsconfig for one file.
+        projectService: { allowDefaultProject: ['playwright.config.ts'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },

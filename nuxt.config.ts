@@ -102,9 +102,18 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    // Prerender the routes that never depend on a request so the static
-    // showcase build has something to serve.
-    prerender: { crawlLinks: false, routes: ['/'] },
+    // Nothing is prerendered, deliberately.
+    //
+    // A prerendered route is served by the static handler, so Nitro's render
+    // hooks never run for it — which meant the security headers were absent on
+    // exactly the page most likely to be public. And a per-request CSP nonce
+    // baked into a static file at build time is a constant, which is the same
+    // as having no nonce.
+    //
+    // The `swr` route rules already give cached responses without either
+    // problem: the first request renders, the rest are served from cache, and
+    // every one of them goes through the response pipeline.
+    prerender: { crawlLinks: false, routes: [] },
   },
 
   app: {

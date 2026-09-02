@@ -6,6 +6,24 @@
  * per navigation, during SSR, and every route inherits it without repeating
  * the call.
  */
+/**
+ * Mark the document once Vue has hydrated.
+ *
+ * An end-to-end test that clicks a button before hydration gets the browser's
+ * native behaviour instead of the handler — for a form, a full page submit and
+ * reload, which then reads as "validation did not fire". Being
+ * timing-dependent, it presents as flake rather than as a bug.
+ *
+ * **Registered before the `await` below, and that is not stylistic.** In an
+ * async `setup()`, everything after the first `await` runs outside the
+ * component instance context, so `onMounted` there is silently dropped — no
+ * warning, no error, the hook simply never runs. It is one of the sharpest
+ * edges in the Composition API precisely because it fails quietly.
+ */
+onMounted(() => {
+  document.documentElement.dataset.hydrated = 'true';
+});
+
 const { data: menu } = await useMenu('main');
 </script>
 
