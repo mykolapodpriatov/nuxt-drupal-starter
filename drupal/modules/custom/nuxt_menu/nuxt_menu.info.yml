@@ -1,0 +1,7 @@
+name: 'Nuxt menu'
+type: module
+description: 'Read-only, access-checked menu tree endpoint for a decoupled front end.'
+package: 'Nuxt Drupal Starter'
+core_version_requirement: ^11
+dependencies:
+  - drupal:system

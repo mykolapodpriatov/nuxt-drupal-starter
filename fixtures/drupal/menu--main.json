@@ -1,0 +1,60 @@
+{
+  "menu": "main",
+  "items": [
+    {
+      "id": "menu_link_content:2557e031-ffd0-4943-b041-e31b7f7d3891",
+      "title": "Articles",
+      "url": "/articles",
+      "external": false,
+      "description": "",
+      "expanded": false,
+      "children": []
+    },
+    {
+      "id": "menu_link_content:86f203d5-5b43-4677-9e8c-cc1a79dbb317",
+      "title": "About",
+      "url": "/about",
+      "external": false,
+      "description": "",
+      "expanded": true,
+      "children": [
+        {
+          "id": "menu_link_content:16ade47c-2058-4824-b116-0fcfcfe81ff9",
+          "title": "How we work",
+          "url": "/about/process",
+          "external": false,
+          "description": "",
+          "expanded": false,
+          "children": []
+        },
+        {
+          "id": "menu_link_content:752b4cbb-6bc8-4450-a702-ac23f84bc09f",
+          "title": "Our team",
+          "url": "/about/team",
+          "external": false,
+          "description": "",
+          "expanded": false,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "standard.front_page",
+      "title": "Home",
+      "url": "/",
+      "external": false,
+      "description": "",
+      "expanded": false,
+      "children": []
+    },
+    {
+      "id": "menu_link_content:a1d4d519-7c21-4df6-b6cb-2282ddb123fe",
+      "title": "Contact",
+      "url": "/contact",
+      "external": false,
+      "description": "",
+      "expanded": false,
+      "children": []
+    }
+  ]
+}

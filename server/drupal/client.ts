@@ -134,6 +134,15 @@ export function readNextCursor(document: JsonApiDocument): string | null {
 }
 
 export interface DrupalClient {
+  /**
+   * GET a path outside the JSON:API prefix, parsed as JSON.
+   *
+   * Needed because not everything a decoupled front end reads is a JSON:API
+   * resource. The menu endpoint in `drupal/modules/custom/nuxt_menu` is a plain
+   * route, because core JSON:API cannot expose menus to an unprivileged
+   * consumer at all — see ADR-003.
+   */
+  getJson: (path: string, init?: RequestInit) => Promise<unknown>;
   /** Fetch a collection and return the raw document plus its `included` array. */
   getCollection: (
     resourceType: string,
@@ -169,8 +178,20 @@ export function createDrupalClient(options: DrupalClientOptions): DrupalClient {
 
   const origin = baseUrl.replace(/\/+$/, '');
 
-  async function request(path: string, init: RequestInit = {}): Promise<unknown> {
-    const url = `${origin}${apiPrefix}${path}`;
+  /**
+   * The shared request path.
+   *
+   * `prefix` is the only difference between a JSON:API call and a plain one:
+   * the timeout, the abort signal, the bearer token, the JSON parsing and the
+   * error classification are identical, and duplicating them would mean the
+   * menu endpoint quietly losing the timeout the rest of the client has.
+   */
+  async function send(
+    prefix: string,
+    path: string,
+    init: RequestInit = {},
+  ): Promise<unknown> {
+    const url = `${origin}${prefix}${path}`;
 
     // A CMS that has stopped answering must not be able to hold an SSR render
     // open indefinitely. `AbortSignal.timeout` gives every request a ceiling.
@@ -216,7 +237,7 @@ export function createDrupalClient(options: DrupalClientOptions): DrupalClient {
       // required", which is the difference between an hour of debugging and a
       // minute.
       throw new DrupalResponseError(
-        `Drupal returned ${response.status} for ${apiPrefix}${path}`,
+        `Drupal returned ${response.status} for ${prefix}${path}`,
         'http-error',
         payload,
       );
@@ -230,8 +251,12 @@ export function createDrupalClient(options: DrupalClientOptions): DrupalClient {
     return payload;
   }
 
+  const request = (path: string, init?: RequestInit): Promise<unknown> =>
+    send(apiPrefix, path, init);
+
   return {
     request,
+    getJson: (path, init) => send('', path, init),
 
     async getCollection(resourceType, query) {
       const payload = await request(`/${resourceType}${buildQuery(query)}`);
