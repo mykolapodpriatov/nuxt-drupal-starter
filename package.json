@@ -29,7 +29,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "verify": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+    "verify": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "snapshot:content": "tsx scripts/snapshot-content.ts"
   },
   "dependencies": {
     "nuxt": "^4.5.2",
@@ -47,6 +48,7 @@
     "eslint-config-prettier": "^10.1.8",
     "happy-dom": "^20.13.1",
     "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11",
     "vue-tsc": "^3.3.11"

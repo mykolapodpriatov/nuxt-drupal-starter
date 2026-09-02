@@ -182,83 +182,164 @@ describe('toArticlePath', () => {
 });
 
 describe('toDomainImage', () => {
-  it('walks media → file and builds an absolute URL', () => {
-    const index = indexIncluded([media('m-1', 'f-1'), file('f-1', '/sites/default/a.jpg')]);
-    const image = toDomainImage(resolveOne({ data: { type: 'media--image', id: 'm-1' } }, index), index, SITE);
-    expect(image?.url).toBe(`${SITE}/sites/default/a.jpg`);
-    expect(image?.alt).toBe('Hero image');
-  });
+  /** Relationship pointer with the meta block Drupal actually sends. */
+  const pointer = (
+    type: string,
+    id: string,
+    meta?: Record<string, unknown>,
+  ) => ({ data: { type, id, ...(meta ? { meta } : {}) } });
 
-  it('leaves an already absolute file URL alone', () => {
-    const index = indexIncluded([
-      media('m-1', 'f-1'),
-      file('f-1', 'https://cdn.example.test/a.jpg'),
-    ]);
-    const image = toDomainImage(index.get('media--image:m-1') ?? null, index, SITE);
-    expect(image?.url).toBe('https://cdn.example.test/a.jpg');
-  });
+  describe('plain image field (core article recipe)', () => {
+    it('resolves a file relationship directly', () => {
+      // `field_image` on core's article content type is an image field, not a
+      // media reference — it points straight at file--file.
+      const index = indexIncluded([file('f-1', '/sites/default/files/cover.jpg')]);
+      const image = toDomainImage(
+        pointer('file--file', 'f-1', { alt: 'A cover', width: 1200, height: 630 }),
+        index,
+        SITE,
+      );
+      expect(image?.url).toBe(`${SITE}/sites/default/files/cover.jpg`);
+      expect(image?.alt).toBe('A cover');
+      expect(image?.width).toBe(1200);
+      expect(image?.height).toBe(630);
+    });
 
-  it('returns null when the file behind the media entity is gone', () => {
-    // The media entity survives deletion of its file more often than you would
-    // hope; rendering it would produce a broken <img>.
-    const index = indexIncluded([media('m-1', 'missing')]);
-    expect(toDomainImage(index.get('media--image:m-1') ?? null, index, SITE)).toBeNull();
-  });
+    it('reads alt from the relationship meta, not the file', () => {
+      // Drupal records alt on the pointer, so the same file reused on two nodes
+      // can carry different alt text. Reading the file's attributes instead
+      // renders every image with empty alt.
+      const index = indexIncluded([file('f-1', '/a.jpg')]);
+      const image = toDomainImage(pointer('file--file', 'f-1', { alt: 'From meta' }), index, SITE);
+      expect(image?.alt).toBe('From meta');
+    });
 
-  it('returns null when there is no image at all', () => {
-    expect(toDomainImage(null, indexIncluded([]), SITE)).toBeNull();
-  });
+    it('marks the image decorative when alt is absent', () => {
+      const index = indexIncluded([file('f-1', '/a.jpg')]);
+      expect(toDomainImage(pointer('file--file', 'f-1'), index, SITE)?.alt).toBe('');
+    });
 
-  it('reads image styles served as an object', () => {
-    const index = indexIncluded([
-      media('m-1', 'f-1'),
-      file('f-1', '/a.jpg', { wide: '/styles/wide/a.jpg', thumb: '/styles/thumb/a.jpg' }),
-    ]);
-    const image = toDomainImage(index.get('media--image:m-1') ?? null, index, SITE);
-    expect(image?.styles).toEqual({
-      wide: '/styles/wide/a.jpg',
-      thumb: '/styles/thumb/a.jpg',
+    it('omits width and height when Drupal did not supply them', () => {
+      const index = indexIncluded([file('f-1', '/a.jpg')]);
+      const image = toDomainImage(pointer('file--file', 'f-1', { alt: 'x' }), index, SITE);
+      expect(image).not.toHaveProperty('width');
     });
   });
 
-  it('reads image styles served as an array-wrapped object', () => {
-    // Drupal serialises this field both ways depending on version and module
-    // configuration, and both turn up against the same codebase.
-    const wrapped: ResourceObject = {
-      type: 'file--file',
-      id: 'f-1',
-      attributes: {
-        uri: { url: '/a.jpg' },
-        image_style_uri: [{ wide: '/styles/wide/a.jpg' }],
-      },
-    };
-    const index = indexIncluded([media('m-1', 'f-1'), wrapped]);
-    const image = toDomainImage(index.get('media--image:m-1') ?? null, index, SITE);
-    expect(image?.styles).toEqual({ wide: '/styles/wide/a.jpg' });
+  describe('media reference field (media library)', () => {
+    it('hops through the media entity to its file', () => {
+      const index = indexIncluded([media('m-1', 'f-1'), file('f-1', '/sites/default/a.jpg')]);
+      const image = toDomainImage(pointer('media--image', 'm-1'), index, SITE);
+      expect(image?.url).toBe(`${SITE}/sites/default/a.jpg`);
+    });
+
+    it('takes alt from the inner field_media_image relationship', () => {
+      const withMeta: ResourceObject = {
+        type: 'media--image',
+        id: 'm-1',
+        attributes: { name: 'Admin-facing media name' },
+        relationships: {
+          field_media_image: {
+            data: { type: 'file--file', id: 'f-1', meta: { alt: 'Real alt text' } },
+          },
+        },
+      };
+      const index = indexIncluded([withMeta, file('f-1', '/a.jpg')]);
+      const image = toDomainImage(pointer('media--image', 'm-1'), index, SITE);
+      // The media entity's `name` is an admin label, not alt text.
+      expect(image?.alt).toBe('Real alt text');
+    });
+
+    it('returns null when the file behind the media entity is gone', () => {
+      // A media entity routinely outlives its file; rendering it would produce
+      // a broken <img>.
+      const index = indexIncluded([media('m-1', 'missing')]);
+      expect(toDomainImage(pointer('media--image', 'm-1'), index, SITE)).toBeNull();
+    });
   });
 
-  it('yields an empty styles map rather than undefined', () => {
-    const index = indexIncluded([media('m-1', 'f-1'), file('f-1', '/a.jpg')]);
-    const image = toDomainImage(index.get('media--image:m-1') ?? null, index, SITE);
-    // Templates can read `image.styles.wide ?? image.url` with no null check.
-    expect(image?.styles).toEqual({});
+  describe('absence', () => {
+    it('returns null for an empty relationship', () => {
+      expect(toDomainImage({ data: null }, indexIncluded([]), SITE)).toBeNull();
+    });
+
+    it('returns null when the field was never requested', () => {
+      expect(toDomainImage(undefined, indexIncluded([]), SITE)).toBeNull();
+    });
+
+    it('returns null for a dangling pointer', () => {
+      expect(
+        toDomainImage(pointer('file--file', 'deleted'), indexIncluded([]), SITE),
+      ).toBeNull();
+    });
+
+    it('returns null for a multi-value relationship', () => {
+      // A field made multi-value in Drupal flips `data` to an array. Rendering
+      // an arbitrary member would be a guess; the caller should ask for a list.
+      const index = indexIncluded([file('f-1', '/a.jpg')]);
+      expect(
+        toDomainImage({ data: [{ type: 'file--file', id: 'f-1' }] }, index, SITE),
+      ).toBeNull();
+    });
+
+    it('returns null when the file has no resolvable URL', () => {
+      const brokenFile: ResourceObject = {
+        type: 'file--file',
+        id: 'f-1',
+        attributes: { uri: { value: 'public://a.jpg' } },
+      };
+      const index = indexIncluded([brokenFile]);
+      expect(toDomainImage(pointer('file--file', 'f-1'), index, SITE)).toBeNull();
+    });
   });
 
-  it('marks an image decorative when Drupal supplies no name', () => {
-    const index = indexIncluded([
-      { type: 'media--image', id: 'm-1', relationships: { field_media_image: { data: { type: 'file--file', id: 'f-1' } } } },
-      file('f-1', '/a.jpg'),
-    ]);
-    const image = toDomainImage(index.get('media--image:m-1') ?? null, index, SITE);
-    expect(image?.alt).toBe('');
+  describe('URLs and image styles', () => {
+    it('leaves an already absolute file URL alone', () => {
+      const index = indexIncluded([file('f-1', 'https://cdn.example.test/a.jpg')]);
+      expect(toDomainImage(pointer('file--file', 'f-1'), index, SITE)?.url).toBe(
+        'https://cdn.example.test/a.jpg',
+      );
+    });
+
+    it('yields an empty styles map when consumer_image_styles is not installed', () => {
+      // Which is the default: a stock Drupal emits no `image_style_uri` at all.
+      const index = indexIncluded([file('f-1', '/a.jpg')]);
+      expect(toDomainImage(pointer('file--file', 'f-1'), index, SITE)?.styles).toEqual({});
+    });
+
+    it('reads image styles served as an object', () => {
+      const index = indexIncluded([
+        file('f-1', '/a.jpg', { wide: '/styles/wide/a.jpg', thumb: '/styles/thumb/a.jpg' }),
+      ]);
+      expect(toDomainImage(pointer('file--file', 'f-1'), index, SITE)?.styles).toEqual({
+        wide: '/styles/wide/a.jpg',
+        thumb: '/styles/thumb/a.jpg',
+      });
+    });
+
+    it('reads image styles served as an array-wrapped object', () => {
+      // Drupal serialises this field both ways depending on version and module
+      // configuration, against the same codebase.
+      const wrapped: ResourceObject = {
+        type: 'file--file',
+        id: 'f-1',
+        attributes: { uri: { url: '/a.jpg' }, image_style_uri: [{ wide: '/styles/wide/a.jpg' }] },
+      };
+      const index = indexIncluded([wrapped]);
+      expect(toDomainImage(pointer('file--file', 'f-1'), index, SITE)?.styles).toEqual({
+        wide: '/styles/wide/a.jpg',
+      });
+    });
   });
 });
 
 describe('toArticle', () => {
   it('maps a fully populated article', () => {
-    const index = indexIncluded([media('m-1', 'f-1'), file('f-1', '/a.jpg')]);
+    const index = indexIncluded([file('f-1', '/a.jpg')]);
     const resource = article({
-      relationships: { field_image: { data: { type: 'media--image', id: 'm-1' } } },
+      relationships: {
+        field_image: { data: { type: 'file--file', id: 'f-1', meta: { alt: 'Cover' } } },
+      },
     });
     const result = toArticle(resource, index, SITE);
 

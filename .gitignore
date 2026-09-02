@@ -12,3 +12,13 @@ playwright-report/
 .env
 .env.*
 !.env.example
+
+# The reference Drupal install is built by `drupal/setup.sh`, not committed.
+# Only the DDEV config, composer manifest and recipe live in git.
+drupal/web/
+drupal/vendor/
+drupal/composer.lock
+drupal/.ddev/.*
+drupal/recipes/
+drupal/.editorconfig
+drupal/.gitattributes

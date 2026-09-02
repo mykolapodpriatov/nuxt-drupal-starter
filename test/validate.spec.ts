@@ -4,6 +4,7 @@ import {
   assertJsonApiDocument,
   assertSingleResource,
   describeErrors,
+  describeOmitted,
   DrupalResponseError,
   isErrorDocument,
   isResourceObject,
@@ -164,4 +165,63 @@ describe('assertSingleResource / assertCollection', () => {
       1,
     );
   });
+});
+
+describe('describeOmitted', () => {
+  /**
+   * The real shape, copied from a Drupal 11 response to
+   * `/jsonapi/menu_link_content/menu_link_content` as an anonymous consumer.
+   * HTTP 200, empty `data`, and the actual reason two levels deep in metadata.
+   */
+  const omittedResponse = {
+    data: [],
+    meta: {
+      omitted: {
+        detail: 'Some resources have been omitted because of insufficient authorization.',
+        links: {
+          help: { href: 'https://www.drupal.org/docs/8/modules/json-api/filtering' },
+          'item--k6hAYrc': {
+            href: 'https://cms.example.test/jsonapi/menu_link_content/menu_link_content/86f2',
+            meta: {
+              rel: 'item',
+              detail:
+                "The current user is not allowed to GET the selected resource. The 'administer menu' permission is required.",
+            },
+          },
+        },
+      },
+    },
+  };
+
+  it('surfaces the permission that was actually missing', () => {
+    // Without this, the symptom is "the navigation is empty" and there is
+    // nothing in the status code, the payload shape or the logs to explain it.
+    const reason = describeOmitted(omittedResponse);
+    expect(reason).toContain('administer menu');
+  });
+
+  it('includes the summary detail alongside the specific reason', () => {
+    expect(describeOmitted(omittedResponse)).toContain('insufficient authorization');
+  });
+
+  it('falls back to the summary when no per-item reason is given', () => {
+    expect(
+      describeOmitted({ data: [], meta: { omitted: { detail: 'Some were omitted.' } } }),
+    ).toBe('Some were omitted.');
+  });
+
+  it('returns null for an ordinary successful response', () => {
+    expect(describeOmitted({ data: [{ type: 'node--article', id: 'a-1' }] })).toBeNull();
+  });
+
+  it('returns null when meta carries no omitted block', () => {
+    expect(describeOmitted({ data: [], meta: { count: 0 } })).toBeNull();
+  });
+
+  it.each([['null', null], ['a string', 'nope'], ['an array', []]])(
+    'returns null for %s',
+    (_label, value) => {
+      expect(describeOmitted(value)).toBeNull();
+    },
+  );
 });
