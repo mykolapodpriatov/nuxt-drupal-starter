@@ -30,7 +30,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "verify": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
-    "snapshot:content": "tsx scripts/snapshot-content.ts"
+    "snapshot:content": "tsx scripts/snapshot-content.ts",
+    "test:scan": "vitest run --config vitest.config.scan.ts"
   },
   "dependencies": {
     "nuxt": "^4.5.2",

@@ -1,0 +1,13 @@
+nuxt_contact.submit:
+  path: '/api/contact'
+  defaults:
+    _controller: '\Drupal\nuxt_contact\Controller\ContactSubmitController::submit'
+    _title: 'Submit a contact message'
+  methods: [POST]
+  requirements:
+    # Drupal's own permission for the site-wide contact form. The endpoint
+    # creates exactly one entity type and nothing else, so this is the whole of
+    # the write surface it opens.
+    _permission: 'access site-wide contact form'
+  options:
+    no_cache: true

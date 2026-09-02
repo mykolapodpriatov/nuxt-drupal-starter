@@ -38,6 +38,7 @@ mkdir -p web/modules/custom
 cp -R modules/custom/nuxt_menu web/modules/custom/
 cp -R modules/custom/nuxt_router web/modules/custom/
 cp -R modules/custom/nuxt_preview web/modules/custom/
+cp -R modules/custom/nuxt_contact web/modules/custom/
 
 echo "==> Enabling JSON:API (read-only)"
 ddev drush en jsonapi -y
@@ -47,7 +48,21 @@ ddev drush role:perm:add anonymous 'access content' -y
 echo "==> Enabling the menu and path-resolution endpoints"
 # Core JSON:API cannot expose menus to an unprivileged consumer (ADR-003), and
 # cannot filter on `path` at all because it is a computed field (ADR-004).
-ddev drush en nuxt_menu nuxt_router nuxt_preview -y
+ddev drush en contact nuxt_menu nuxt_router nuxt_preview nuxt_contact -y
+
+# The contact form messages are filed against. Core's standard profile no
+# longer creates one.
+ddev drush php:eval '
+$s = \Drupal::entityTypeManager()->getStorage("contact_form");
+if (!$s->load("feedback")) {
+  $s->create(["id" => "feedback", "label" => "Website feedback", "recipients" => ["admin@example.test"], "reply" => "", "weight" => 0, "message" => "Your message has been sent."])->save();
+}
+\Drupal::configFactory()->getEditable("contact.settings")->set("default_form", "feedback")->save();
+'
+
+# Reading navigation and submitting the contact form are both things an
+# anonymous visitor does on an ordinary Drupal site.
+ddev drush role:perm:add anonymous 'access site-wide contact form' -y
 
 # Preview links and cache invalidation need three settings, and they live in
 # settings.php rather than configuration: config is exported to config/sync and
