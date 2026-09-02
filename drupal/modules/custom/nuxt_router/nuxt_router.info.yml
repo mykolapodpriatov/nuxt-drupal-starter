@@ -1,0 +1,7 @@
+name: 'Nuxt router'
+type: module
+description: 'Resolves a public URL path to the entity behind it, for a decoupled front end.'
+package: 'Nuxt Drupal Starter'
+core_version_requirement: ^11
+dependencies:
+  - drupal:path_alias

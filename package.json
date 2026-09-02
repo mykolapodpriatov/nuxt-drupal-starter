@@ -21,7 +21,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,vue,json,md,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,vue,json,md,yml}\"",

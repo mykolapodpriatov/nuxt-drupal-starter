@@ -33,19 +33,20 @@ ddev drush recipe ../web/core/recipes/article_content_type
 
 # The menu module lives in drupal/modules/custom (committed); Drupal looks in
 # web/modules/custom (gitignored, part of the generated install).
-echo "==> Installing the nuxt_menu module"
+echo "==> Installing the custom modules"
 mkdir -p web/modules/custom
 cp -R modules/custom/nuxt_menu web/modules/custom/
+cp -R modules/custom/nuxt_router web/modules/custom/
 
 echo "==> Enabling JSON:API (read-only)"
 ddev drush en jsonapi -y
 ddev drush config:set jsonapi.settings read_only true -y
 ddev drush role:perm:add anonymous 'access content' -y
 
-echo "==> Enabling the menu endpoint"
-# Core JSON:API cannot expose menus to an unprivileged consumer — see
-# docs/adr/003-menu-endpoint.md.
-ddev drush en nuxt_menu -y
+echo "==> Enabling the menu and path-resolution endpoints"
+# Core JSON:API cannot expose menus to an unprivileged consumer (ADR-003), and
+# cannot filter on `path` at all because it is a computed field (ADR-004).
+ddev drush en nuxt_menu nuxt_router -y
 
 echo "==> Creating sample content"
 ddev drush php:script scripts/create-articles.php

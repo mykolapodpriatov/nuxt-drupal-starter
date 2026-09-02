@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Preview renders unpublished, editor-only content. It is also served with
+# `X-Robots-Tag: noindex` and `Cache-Control: no-store`, but a crawler that
+# never requests it cannot index it by accident.
+Disallow: /preview/
+
+Sitemap: /sitemap.xml
