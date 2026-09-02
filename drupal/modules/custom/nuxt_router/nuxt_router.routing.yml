@@ -1,0 +1,11 @@
+nuxt_router.resolve:
+  path: '/api/resolve'
+  defaults:
+    _controller: '\Drupal\nuxt_router\Controller\PathResolveController::resolve'
+    _title: 'Resolve path'
+  methods: [GET]
+  requirements:
+    # Same permission a site already grants anonymous users to read published
+    # nodes. The endpoint answers "what is at this path", and the per-entity
+    # access check below decides whether the answer is anything at all.
+    _permission: 'access content'

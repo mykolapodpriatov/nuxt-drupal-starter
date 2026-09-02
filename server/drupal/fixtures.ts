@@ -185,9 +185,36 @@ export function createFixtureFetch(options: FixtureFetchOptions): typeof globalT
     const href = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(href, 'https://fixtures.invalid');
 
-    // Non-JSON:API endpoints are served verbatim from the `raw` map: they have
-    // no collection semantics to emulate, so filtering and pagination do not
-    // apply.
+    // Path resolution is derived rather than captured. Drupal answers it from
+    // the alias table; here the same answer is computed from the aliases
+    // already present in the captured articles, so the two cannot drift and
+    // there is no second fixture to keep current.
+    if (url.pathname === '/api/resolve') {
+      const requested = url.searchParams.get('path') ?? '';
+      const match = asArray(fixtures.collections['node/article']?.data ?? []).find(
+        (item) =>
+          (item.attributes as { path?: { alias?: unknown } } | undefined)?.path?.alias ===
+          requested,
+      );
+      if (!match) return notFound(`Nothing at ${requested}`);
+      return new Response(
+        JSON.stringify({
+          found: true,
+          entity: {
+            type: 'node',
+            bundle: 'article',
+            uuid: match.id,
+            resourceType: match.type,
+            langcode: 'en',
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }
+
+    // Other non-JSON:API endpoints are served verbatim from the `raw` map: they
+    // have no collection semantics to emulate, so filtering and pagination do
+    // not apply.
     if (!url.pathname.startsWith('/jsonapi')) {
       const captured = fixtures.raw?.[url.pathname];
       if (captured === undefined) return notFound(`No fixture for ${url.pathname}`);
