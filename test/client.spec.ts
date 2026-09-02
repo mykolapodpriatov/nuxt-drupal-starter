@@ -37,9 +37,17 @@ describe('buildQuery', () => {
     expect(decodeURIComponent(query)).toContain('fields[node--article]=title,path');
   });
 
-  it('emits filters in bracket syntax', () => {
-    const query = buildQuery({ filter: { 'status[value]': '1' } });
-    expect(decodeURIComponent(query)).toContain('filter[status[value]]=1');
+  it('expands a dotted filter path into bracket segments', () => {
+    // `filter[status[value]]` is syntactically plausible, silently ignored by
+    // Drupal, and comes back with every unpublished article included.
+    const query = buildQuery({ filter: { 'status.value': '1' } });
+    expect(decodeURIComponent(query)).toContain('filter[status][value]=1');
+  });
+
+  it('supports the shorthand single-segment filter', () => {
+    expect(decodeURIComponent(buildQuery({ filter: { status: '1' } }))).toContain(
+      'filter[status]=1',
+    );
   });
 
   it('emits pagination as page[limit] and page[offset]', () => {

@@ -17,10 +17,25 @@
  * these types may legitimately be applied to.
  */
 
-/** A `{type, id}` pointer into the `included` array. */
+/**
+ * A `{type, id}` pointer into the `included` array.
+ *
+ * The `meta` block is not decoration. For an image field, Drupal puts the alt
+ * text, title, width and height **here** — on the pointer — rather than on the
+ * file resource it points at. That is arguably the correct model (the same file
+ * reused on two nodes can carry different alt text) and it is also the detail
+ * that makes a naive mapper render every image with empty alt.
+ */
 export interface ResourceIdentifier {
   type: string;
   id: string;
+  meta?: {
+    alt?: string;
+    title?: string;
+    width?: number;
+    height?: number;
+    [key: string]: unknown;
+  };
 }
 
 /**

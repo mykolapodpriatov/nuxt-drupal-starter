@@ -1,0 +1,370 @@
+{
+  "jsonapi": {
+    "version": "1.1"
+  },
+  "data": [
+    {
+      "type": "node--article",
+      "id": "59ec6373-e148-47ab-bac7-e10a56b3f6e1",
+      "attributes": {
+        "drupal_internal__nid": 1,
+        "drupal_internal__vid": 1,
+        "langcode": "en",
+        "revision_timestamp": "2026-09-02T15:28:23+00:00",
+        "status": true,
+        "title": "Decoupling Drupal without losing the editorial workflow",
+        "created": "2026-09-01T15:28:23+00:00",
+        "changed": "2026-09-02T15:28:23+00:00",
+        "promote": true,
+        "sticky": false,
+        "default_langcode": true,
+        "revision_translation_affected": true,
+        "path": {
+          "alias": "/blog/decoupling-drupal-without-losing-the-edi",
+          "pid": 1,
+          "langcode": "en"
+        },
+        "body": {
+          "value": "<p>Preview, revisions and menus are the parts a headless front end usually drops. They are also the parts editors notice first.</p><p>This article walks through keeping them.</p>",
+          "format": "basic_html",
+          "processed": "<p>Preview, revisions and menus are the parts a headless front end usually drops. They are also the parts editors notice first.</p><p>This article walks through keeping them.</p>",
+          "summary": null
+        }
+      },
+      "relationships": {
+        "node_type": {
+          "data": {
+            "type": "node_type--node_type",
+            "id": "08f6fc37-4b71-4ebe-86ed-8ab3a07de323",
+            "meta": {
+              "drupal_internal__target_id": "article"
+            }
+          }
+        },
+        "revision_uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "field_image": {
+          "data": {
+            "type": "file--file",
+            "id": "e857e019-5f92-4887-a943-e700053c1e58",
+            "meta": {
+              "alt": "Editor previewing an unpublished article",
+              "title": "",
+              "width": 1201,
+              "height": 630,
+              "drupal_internal__target_id": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "node--article",
+      "id": "bb3ab9ff-5a97-4b35-9645-1817701ddac8",
+      "attributes": {
+        "drupal_internal__nid": 2,
+        "drupal_internal__vid": 2,
+        "langcode": "en",
+        "revision_timestamp": "2026-09-02T15:28:23+00:00",
+        "status": true,
+        "title": "Why JSON:API responses are a graph, not a view model",
+        "created": "2026-08-31T15:28:24+00:00",
+        "changed": "2026-09-02T15:28:23+00:00",
+        "promote": true,
+        "sticky": false,
+        "default_langcode": true,
+        "revision_translation_affected": true,
+        "path": {
+          "alias": "/blog/why-json-api-responses-are-a-graph-not-",
+          "pid": 2,
+          "langcode": "en"
+        },
+        "body": {
+          "value": "<p>Relationships arrive as <code>{type, id}</code> pointers and the objects behind them sit in a sibling <code>included</code> array.</p>",
+          "format": "basic_html",
+          "processed": "<p>Relationships arrive as <code>{type, id}</code> pointers and the objects behind them sit in a sibling <code>included</code> array.</p>",
+          "summary": null
+        }
+      },
+      "relationships": {
+        "node_type": {
+          "data": {
+            "type": "node_type--node_type",
+            "id": "08f6fc37-4b71-4ebe-86ed-8ab3a07de323",
+            "meta": {
+              "drupal_internal__target_id": "article"
+            }
+          }
+        },
+        "revision_uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "field_image": {
+          "data": {
+            "type": "file--file",
+            "id": "0a14adbf-c7ca-491e-9d29-d0ed4fdca694",
+            "meta": {
+              "alt": "Diagram of a normalised JSON:API document",
+              "title": "",
+              "width": 1202,
+              "height": 630,
+              "drupal_internal__target_id": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "node--article",
+      "id": "36d3ce1d-8809-4177-b533-6c2b5d59c911",
+      "attributes": {
+        "drupal_internal__nid": 3,
+        "drupal_internal__vid": 3,
+        "langcode": "en",
+        "revision_timestamp": "2026-09-02T15:28:23+00:00",
+        "status": true,
+        "title": "Caching a decoupled site without serving stale drafts",
+        "created": "2026-08-30T15:28:24+00:00",
+        "changed": "2026-09-02T15:28:23+00:00",
+        "promote": true,
+        "sticky": false,
+        "default_langcode": true,
+        "revision_translation_affected": true,
+        "path": {
+          "alias": "/blog/caching-a-decoupled-site-without-serving",
+          "pid": 3,
+          "langcode": "en"
+        },
+        "body": {
+          "value": "<p>Stale-while-revalidate on published content, and no caching whatsoever on preview.</p>",
+          "format": "basic_html",
+          "processed": "<p>Stale-while-revalidate on published content, and no caching whatsoever on preview.</p>",
+          "summary": null
+        }
+      },
+      "relationships": {
+        "node_type": {
+          "data": {
+            "type": "node_type--node_type",
+            "id": "08f6fc37-4b71-4ebe-86ed-8ab3a07de323",
+            "meta": {
+              "drupal_internal__target_id": "article"
+            }
+          }
+        },
+        "revision_uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "field_image": {
+          "data": {
+            "type": "file--file",
+            "id": "3191c9c0-5099-42c5-908f-0c62ecb89fa6",
+            "meta": {
+              "alt": "Cache invalidation flowing from Drupal to the front end",
+              "title": "",
+              "width": 1203,
+              "height": 630,
+              "drupal_internal__target_id": 3
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "node--article",
+      "id": "b5783b17-0900-4ee5-af0b-d350180f8eb6",
+      "attributes": {
+        "drupal_internal__nid": 4,
+        "drupal_internal__vid": 4,
+        "langcode": "en",
+        "revision_timestamp": "2026-09-02T15:28:23+00:00",
+        "status": true,
+        "title": "An article with no image at all",
+        "created": "2026-08-29T15:28:24+00:00",
+        "changed": "2026-09-02T15:28:23+00:00",
+        "promote": true,
+        "sticky": false,
+        "default_langcode": true,
+        "revision_translation_affected": true,
+        "path": {
+          "alias": "/blog/an-article-with-no-image-at-all",
+          "pid": 4,
+          "langcode": "en"
+        },
+        "body": {
+          "value": "<p>Every mapper has to cope with an empty relationship, so the snapshot contains one.</p>",
+          "format": "basic_html",
+          "processed": "<p>Every mapper has to cope with an empty relationship, so the snapshot contains one.</p>",
+          "summary": null
+        }
+      },
+      "relationships": {
+        "node_type": {
+          "data": {
+            "type": "node_type--node_type",
+            "id": "08f6fc37-4b71-4ebe-86ed-8ab3a07de323",
+            "meta": {
+              "drupal_internal__target_id": "article"
+            }
+          }
+        },
+        "revision_uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        },
+        "field_image": {
+          "data": null
+        }
+      }
+    }
+  ],
+  "included": [
+    {
+      "type": "file--file",
+      "id": "e857e019-5f92-4887-a943-e700053c1e58",
+      "attributes": {
+        "drupal_internal__fid": 1,
+        "langcode": "en",
+        "filename": "cover-1.jpg",
+        "uri": {
+          "value": "public://snapshot/cover-1.jpg",
+          "url": "/sites/default/files/snapshot/cover-1.jpg"
+        },
+        "filemime": "image/jpeg",
+        "filesize": 12850,
+        "status": true,
+        "created": "2026-09-02T15:28:23+00:00",
+        "changed": "2026-09-02T15:28:23+00:00"
+      },
+      "relationships": {
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "file--file",
+      "id": "0a14adbf-c7ca-491e-9d29-d0ed4fdca694",
+      "attributes": {
+        "drupal_internal__fid": 2,
+        "langcode": "en",
+        "filename": "cover-2.jpg",
+        "uri": {
+          "value": "public://snapshot/cover-2.jpg",
+          "url": "/sites/default/files/snapshot/cover-2.jpg"
+        },
+        "filemime": "image/jpeg",
+        "filesize": 12850,
+        "status": true,
+        "created": "2026-09-02T15:28:23+00:00",
+        "changed": "2026-09-02T15:28:23+00:00"
+      },
+      "relationships": {
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "file--file",
+      "id": "3191c9c0-5099-42c5-908f-0c62ecb89fa6",
+      "attributes": {
+        "drupal_internal__fid": 3,
+        "langcode": "en",
+        "filename": "cover-3.jpg",
+        "uri": {
+          "value": "public://snapshot/cover-3.jpg",
+          "url": "/sites/default/files/snapshot/cover-3.jpg"
+        },
+        "filemime": "image/jpeg",
+        "filesize": 12850,
+        "status": true,
+        "created": "2026-09-02T15:28:23+00:00",
+        "changed": "2026-09-02T15:28:23+00:00"
+      },
+      "relationships": {
+        "uid": {
+          "data": {
+            "type": "user--user",
+            "id": "351067db-f8f8-43d1-a330-04bcf436d8b5",
+            "meta": {
+              "drupal_internal__target_id": 0
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -127,24 +127,67 @@ function readFileUrl(file: DrupalFileResource, siteUrl: string): string | null {
 }
 
 /**
- * Map a `media--image` (and the `file--file` it wraps) to a renderable image.
+ * Resolve an image relationship to something renderable.
  *
- * Two hops, either of which can dead-end: the media entity may not have been
- * included, and the file behind it may have been deleted while the media entity
- * survived. Both yield `null`, which templates render as "no image" rather than
- * as a broken `<img>`.
+ * Drupal exposes images through two different field types, and a starter has to
+ * survive both because which one a site uses is a decision made by whoever
+ * built it:
+ *
+ * ```
+ * plain image field      field_image ──────────────────────► file--file
+ * media reference        field_image ──► media--image ──► field_media_image ──► file--file
+ * ```
+ *
+ * Core's `article_content_type` recipe produces the first. The media library —
+ * the modern default for anything reused across nodes — produces the second.
+ * Handling only one of them means the images silently vanish on half of all
+ * Drupal sites, and "no image" looks exactly like an article that has none.
+ *
+ * ## Where the alt text lives
+ *
+ * Not on the file. Drupal puts `alt`, `title`, `width` and `height` in the
+ * **relationship's `meta`** block — on the pointer, not on the resource it
+ * points at. That is defensible (the same file reused on two nodes can carry
+ * different alt text per usage) and it is also the single detail most likely to
+ * be missed, because every instinct says to look at the file. A mapper that
+ * reads the file's attributes renders every image with empty alt and no
+ * intrinsic dimensions.
+ *
+ * Verified against a live Drupal 11 instance; see `fixtures/drupal/`.
  */
 export function toDomainImage(
-  media: ResourceObject | null,
+  relationship: Relationship | undefined,
   index: IncludedIndex,
   siteUrl: string,
 ): DomainImage | null {
-  if (!media) return null;
+  const pointer = relationship?.data;
+  if (!pointer || Array.isArray(pointer)) return null;
 
-  const image = media as DrupalMediaImageResource;
-  const file = resolveOne(image.relationships?.field_media_image, index) as
-    | DrupalFileResource
-    | null;
+  const target = index.get(identityKey(pointer.type, pointer.id));
+  if (!target) return null;
+
+  // Media reference: hop through the media entity to the file it wraps, and
+  // take the metadata from *that* inner relationship, which is where Drupal
+  // records alt text for a media image.
+  // Declared without an initialiser: both branches below assign it, and a
+  // placeholder `null` here would just be dead.
+  let file: DrupalFileResource | null;
+  let meta = pointer.meta;
+
+  if (target.type === 'file--file') {
+    file = target as DrupalFileResource;
+  } else {
+    const media = target as DrupalMediaImageResource;
+    const inner = media.relationships?.field_media_image;
+    const innerPointer = inner?.data;
+    if (innerPointer && !Array.isArray(innerPointer)) {
+      meta = innerPointer.meta ?? meta;
+    }
+    file = resolveOne(inner, index) as DrupalFileResource | null;
+  }
+
+  // The media entity can outlive the file behind it. Rendering that produces a
+  // broken <img>, so it counts as no image.
   if (!file) return null;
 
   const url = readFileUrl(file, siteUrl);
@@ -152,12 +195,14 @@ export function toDomainImage(
 
   return {
     url,
-    // Drupal stores alt text on the *relationship* meta, not on the file. When
-    // it is missing, an empty string marks the image decorative — which is the
-    // correct accessible default, and better than inventing alt text from a
-    // filename.
-    alt: typeof image.attributes?.name === 'string' ? image.attributes.name : '',
+    // An empty string marks the image decorative, which is the correct
+    // accessible default — and better than inventing alt text from a filename.
+    alt: typeof meta?.alt === 'string' ? meta.alt : '',
+    // Only present when the `consumer_image_styles` module is installed; an
+    // empty map lets callers write `styles.wide ?? url` with no null check.
     styles: readImageStyles(file.attributes?.image_style_uri),
+    ...(typeof meta?.width === 'number' ? { width: meta.width } : {}),
+    ...(typeof meta?.height === 'number' ? { height: meta.height } : {}),
   };
 }
 
@@ -233,7 +278,7 @@ export function toArticle(
     // Defaults to false on purpose: an unknown status must never be treated as
     // publicly visible, or a draft leaks the first time the field is renamed.
     published: article.attributes?.status === true,
-    image: toDomainImage(resolveOne(article.relationships?.field_image, index), index, siteUrl),
+    image: toDomainImage(article.relationships?.field_image, index, siteUrl),
   };
 }
 

@@ -51,6 +51,51 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Describe the resources Drupal silently withheld, if any.
+ *
+ * This is the quietest failure JSON:API has. When access control denies some
+ * of the resources a collection request matched, Drupal answers **HTTP 200
+ * with an empty `data` array** and explains itself in `meta.omitted` — which
+ * nothing is obliged to read. The caller sees a successful response containing
+ * no content and renders an empty page.
+ *
+ * It is not hypothetical: `menu_link_content` requires the `administer menu`
+ * permission, so a front end reading menus over core JSON:API as an anonymous
+ * consumer gets exactly this. The symptom is "the navigation is empty", and
+ * there is nothing in the logs, the status code or the payload's shape to
+ * suggest a permission problem.
+ *
+ * Returning the detail here lets callers decide: a partially-filtered article
+ * listing is usually fine to render, while an entirely omitted menu is a
+ * misconfiguration worth surfacing.
+ *
+ * @returns the human-readable reason, or `null` when nothing was withheld.
+ */
+export function describeOmitted(payload: unknown): string | null {
+  if (!isRecord(payload)) return null;
+  const meta = payload.meta;
+  if (!isRecord(meta)) return null;
+  const omitted = meta.omitted;
+  if (!isRecord(omitted)) return null;
+
+  const detail = typeof omitted.detail === 'string' ? omitted.detail : 'Resources were omitted';
+
+  // The per-item reasons are the useful part — they name the missing
+  // permission — but there is one per withheld resource, so only the first
+  // distinct reason is worth surfacing.
+  const links = isRecord(omitted.links) ? Object.values(omitted.links) : [];
+  for (const link of links) {
+    if (!isRecord(link)) continue;
+    const linkMeta = link.meta;
+    if (isRecord(linkMeta) && typeof linkMeta.detail === 'string') {
+      return `${detail} ${linkMeta.detail}`;
+    }
+  }
+
+  return detail;
+}
+
+/**
  * `true` when the payload is a JSON:API error document.
  *
  * Checked before the success path because Drupal can answer with HTTP 200 and

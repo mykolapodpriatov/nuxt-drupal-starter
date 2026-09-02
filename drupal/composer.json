@@ -1,0 +1,45 @@
+{
+  "name": "mykolapodpriatov/nuxt-drupal-starter-backend",
+  "description": "Reference Drupal backend for nuxt-drupal-starter.",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "composer/installers": "^2.3",
+    "drupal/core-composer-scaffold": "^11.1",
+    "drupal/core-recommended": "^11.1",
+    "drush/drush": "^13.3"
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true,
+      "drupal/core-composer-scaffold": true,
+      "php-http/discovery": true,
+      "symfony/runtime": true,
+      "cweagans/composer-patches": true
+    },
+    "sort-packages": true
+  },
+  "extra": {
+    "drupal-scaffold": {
+      "locations": {
+        "web-root": "web/"
+      }
+    },
+    "installer-paths": {
+      "web/core": [
+        "type:drupal-core"
+      ],
+      "web/modules/contrib/{$name}": [
+        "type:drupal-module"
+      ],
+      "web/themes/contrib/{$name}": [
+        "type:drupal-theme"
+      ],
+      "web/profiles/contrib/{$name}": [
+        "type:drupal-profile"
+      ]
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

@@ -23,6 +23,7 @@
 import {
   assertCollection,
   assertSingleResource,
+  describeOmitted,
   DrupalResponseError,
 } from './validate.js';
 import type { JsonApiDocument, ResourceObject } from './transport.js';
@@ -41,6 +42,16 @@ export interface DrupalClientOptions {
    * that lets this repository run with no Drupal at all.
    */
   fetch?: typeof globalThis.fetch;
+  /**
+   * Called when Drupal answers 200 but `meta.omitted` shows access control
+   * withheld resources.
+   *
+   * This is the quietest failure the API has — an empty `data` array with the
+   * explanation tucked into metadata nothing is obliged to read — so it is
+   * surfaced rather than swallowed. Defaults to a `console.warn`, because
+   * silence is what makes it expensive.
+   */
+  onOmitted?: OmittedHandler;
 }
 
 /** Query parameters, in JSON:API's bracketed vocabulary. */
@@ -49,7 +60,17 @@ export interface DrupalQuery {
   include?: string[];
   /** Sparse fieldsets keyed by resource type. */
   fields?: Record<string, string[]>;
-  /** Filters, already expressed in JSON:API filter syntax. */
+  /**
+   * Filters, keyed by a dotted field path.
+   *
+   * Dots become bracket segments, which is what JSON:API expects:
+   * `'status'` → `filter[status]=1` (the shorthand form), and
+   * `'status.value'` → `filter[status][value]=1` (the long form).
+   *
+   * Writing the brackets by hand is how `filter[status[value]]` gets emitted —
+   * syntactically plausible, silently ignored by Drupal, and the request comes
+   * back with every article including the unpublished ones.
+   */
   filter?: Record<string, string>;
   /** Sort keys; prefix with `-` for descending. */
   sort?: string[];
@@ -77,7 +98,11 @@ export function buildQuery(query: DrupalQuery = {}): string {
   }
 
   for (const [path, value] of Object.entries(query.filter ?? {})) {
-    params.set(`filter[${path}]`, value);
+    const brackets = path
+      .split('.')
+      .map((segment) => `[${segment}]`)
+      .join('');
+    params.set(`filter${brackets}`, value);
   }
 
   if (query.sort?.length) params.set('sort', query.sort.join(','));
@@ -124,6 +149,9 @@ export interface DrupalClient {
   request: (path: string, init?: RequestInit) => Promise<unknown>;
 }
 
+/** Notified when access control silently withheld part of a response. */
+export type OmittedHandler = (reason: string, context: { path: string }) => void;
+
 export function createDrupalClient(options: DrupalClientOptions): DrupalClient {
   const {
     baseUrl,
@@ -131,6 +159,8 @@ export function createDrupalClient(options: DrupalClientOptions): DrupalClient {
     timeoutMs = 10_000,
     apiPrefix = '/jsonapi',
     fetch: fetchImpl = globalThis.fetch,
+    onOmitted = (reason, { path }) =>
+      console.warn(`[drupal] ${apiPrefix}${path}: ${reason}`),
   } = options;
 
   if (!baseUrl) {
@@ -191,6 +221,11 @@ export function createDrupalClient(options: DrupalClientOptions): DrupalClient {
         payload,
       );
     }
+
+    // A 200 whose `meta.omitted` names withheld resources is the failure mode
+    // that renders an empty page with nothing in the logs. Report it.
+    const omitted = describeOmitted(payload);
+    if (omitted) onOmitted(omitted, { path });
 
     return payload;
   }

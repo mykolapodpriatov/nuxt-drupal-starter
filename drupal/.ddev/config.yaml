@@ -1,0 +1,24 @@
+# DDEV project for the reference Drupal backend.
+#
+# This exists so the starter can be evaluated against a real CMS in one
+# command, and so the committed fixtures in ../fixtures/drupal are a snapshot of
+# actual Drupal output rather than hand-written approximations of it.
+#
+# The site itself is not committed — only this configuration and the recipe that
+# builds it. See ../drupal/README.md.
+name: nuxt-drupal-starter
+type: drupal
+docroot: web
+php_version: "8.4"
+webserver_type: nginx-fpm
+database:
+  type: mariadb
+  version: "10.11"
+composer_version: "2"
+nodejs_version: "22"
+# Ports are left to DDEV. Pinning them looks tidy until 8080 is already taken
+# on the developer's machine, at which point `ddev start` fails for a reason
+# that has nothing to do with this project. Read the assigned URL from
+# `ddev describe` and pass it to the front end as NUXT_DRUPAL_BASE_URL.
+web_environment:
+  - DRUPAL_ENV=ddev

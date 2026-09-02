@@ -1,0 +1,11 @@
+{
+  // Same situation as `test/`: Nuxt generates four TypeScript projects and this
+  // directory belongs to none of them, so type-aware ESLint cannot parse it.
+  // Extending the node project gives the script the same types `nuxt.config.ts`
+  // is written against.
+  "extends": "../.nuxt/tsconfig.node.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts", "../server/**/*.ts", "../shared/**/*.ts"]
+}
