@@ -3,6 +3,8 @@ import { defineVitestConfig } from '@nuxt/test-utils/config';
 export default defineVitestConfig({
   test: {
     globals: true,
+    // Only `*.spec.ts`. The build-output scan is `*.scan.ts` and runs from
+    // vitest.scan.config.ts, after a build.
     include: ['test/**/*.spec.ts'],
     // Most of this repo's logic is plain functions over JSON:API payloads —
     // the normalizer, the validators, the cache key. Those run far faster in

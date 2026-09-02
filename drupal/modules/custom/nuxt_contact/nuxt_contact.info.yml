@@ -1,0 +1,7 @@
+name: 'Nuxt contact'
+type: module
+description: 'Narrow write endpoint for contact submissions from the decoupled front end.'
+package: 'Nuxt Drupal Starter'
+core_version_requirement: ^11
+dependencies:
+  - drupal:contact

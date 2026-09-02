@@ -102,3 +102,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+
+      # The bundle scan has to run *after* a build, so it lives here rather
+      # than in the parallel `test` job — where it would find no output and
+      # pass vacuously, which is worse than not having it.
+      - name: Scan the client bundle for leaked secrets
+        run: pnpm run test:scan
