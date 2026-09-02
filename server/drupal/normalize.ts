@@ -31,18 +31,12 @@ import type {
   DrupalArticleResource,
   DrupalFileResource,
   DrupalMediaImageResource,
-  DrupalMenuLinkResource,
   DrupalTextField,
   Relationship,
   ResourceIdentifier,
   ResourceObject,
 } from './transport.js';
-import type {
-  Article,
-  ArticleSummary,
-  DomainImage,
-  MenuItem,
-} from '../../shared/domain.js';
+import type { Article, ArticleSummary, DomainImage } from '../../shared/domain.js';
 
 /**
  * Index of `included` resources by `type:id`.
@@ -290,68 +284,4 @@ export function toArticleSummary(
 ): ArticleSummary {
   const { id, path, title, summary, createdAt, image } = toArticle(resource, index, siteUrl);
   return { id, path, title, summary, createdAt, image };
-}
-
-/**
- * Build a nested menu tree from Drupal's flat link list.
- *
- * Drupal serialises hierarchy as a `parent` string on each link, formatted as
- * `menu_link_content:{uuid}`. Links arrive in arbitrary order, and a child can
- * appear before its parent, so the tree is assembled in two passes rather than
- * recursively.
- *
- * Disabled links are dropped. A link whose parent is missing — disabled,
- * access-restricted, or deleted — is promoted to the top level rather than
- * silently discarded, so a misconfigured menu loses its nesting instead of its
- * navigation.
- */
-export function toMenuTree(resources: ResourceObject[]): MenuItem[] {
-  const nodes = new Map<string, MenuItem>();
-  const parentOf = new Map<string, string | null>();
-
-  const enabled = resources.filter((resource) => {
-    const link = resource as DrupalMenuLinkResource;
-    return link.attributes?.enabled !== false;
-  });
-
-  for (const resource of enabled) {
-    const link = resource as DrupalMenuLinkResource;
-    nodes.set(link.id, {
-      id: link.id,
-      title: typeof link.attributes?.title === 'string' ? link.attributes.title : '',
-      url: typeof link.attributes?.url === 'string' ? link.attributes.url : '#',
-      children: [],
-    });
-    const rawParent = link.attributes?.parent;
-    // `menu_link_content:{uuid}` — only the uuid identifies the node.
-    const parentId =
-      typeof rawParent === 'string' && rawParent.includes(':')
-        ? (rawParent.split(':').pop() ?? null)
-        : null;
-    parentOf.set(link.id, parentId);
-  }
-
-  const roots: MenuItem[] = [];
-  for (const [id, node] of nodes) {
-    const parentId = parentOf.get(id) ?? null;
-    const parent = parentId !== null ? nodes.get(parentId) : undefined;
-    if (parent) parent.children.push(node);
-    else roots.push(node);
-  }
-
-  // Preserve Drupal's editorial ordering, which `weight` expresses and the
-  // arbitrary array order does not.
-  const weightOf = new Map(
-    enabled.map((resource) => {
-      const link = resource as DrupalMenuLinkResource;
-      return [link.id, typeof link.attributes?.weight === 'number' ? link.attributes.weight : 0];
-    }),
-  );
-  const sortByWeight = (items: MenuItem[]): void => {
-    items.sort((a, b) => (weightOf.get(a.id) ?? 0) - (weightOf.get(b.id) ?? 0));
-    for (const item of items) sortByWeight(item.children);
-  };
-  sortByWeight(roots);
-
-  return roots;
 }

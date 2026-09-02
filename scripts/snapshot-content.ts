@@ -60,22 +60,18 @@ const TARGETS: {
       [],
     ],
   },
-  // Menus are deliberately absent.
-  //
-  // Core JSON:API exposes `menu_link_content`, but reading it requires the
-  // `administer menu` permission — so an anonymous consumer gets HTTP 200, an
-  // empty `data` array, and the explanation buried in `meta.omitted`. Granting
-  // an API consumer `administer menu` to work around that would hand it write
-  // access to every menu on the site, which is not a trade a starter should
-  // recommend.
-  //
-  // `drupal/jsonapi_menu_items` is the usual community answer, but it has no
-  // stable Drupal 11 release, and an unstable contrib dependency is not
-  // something to put in a starter's critical path either.
-  //
-  // The endpoint therefore lands with the menu feature itself: a small
-  // read-only, access-checked module in `drupal/modules/custom/`. Until then
-  // the front end has no menu source and none is pretended.
+];
+
+/**
+ * Endpoints outside JSON:API, captured verbatim.
+ *
+ * Menus live here rather than in `TARGETS` because they are not a JSON:API
+ * resource in this starter — core cannot expose them to an unprivileged
+ * consumer, so `drupal/modules/custom/nuxt_menu` serves an access-checked tree
+ * instead. See docs/adr/003-menu-endpoint.md.
+ */
+const RAW_TARGETS: { path: string; file: string }[] = [
+  { path: '/api/menu/main', file: 'menu--main.json' },
 ];
 
 /**
@@ -195,6 +191,27 @@ async function main(): Promise<void> {
     const included = captured.included?.length ?? 0;
     const shape = usedInclude.length ? `include=${usedInclude.join(',')}` : 'no includes';
     console.log(`${count} resources, ${included} included (${shape}) → ${target.file}`);
+  }
+
+  for (const target of RAW_TARGETS) {
+    process.stdout.write(`Capturing ${target.path} … `);
+    try {
+      const payload = await client.getJson(target.path);
+      const cleaned = sanitize(payload, baseUrl);
+      await writeFile(
+        resolve(OUTPUT_DIR, target.file),
+        `${JSON.stringify(cleaned, null, 2)}\n`,
+        'utf8',
+      );
+      const items = Array.isArray((cleaned as { items?: unknown }).items)
+        ? ((cleaned as { items: unknown[] }).items).length
+        : 0;
+      console.log(`${items} top-level items → ${target.file}`);
+    } catch (error: unknown) {
+      // A site without the nuxt_menu module still has articles worth capturing.
+      console.error(`failed: ${error instanceof Error ? error.message : String(error)}`);
+      process.exitCode = 1;
+    }
   }
 }
 

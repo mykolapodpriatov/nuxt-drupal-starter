@@ -13,6 +13,7 @@
 import { createDrupalClient, type DrupalClient } from './client.js';
 import { createFixtureFetch, type FixtureSet } from './fixtures.js';
 import articles from '../../fixtures/drupal/node--article.json' with { type: 'json' };
+import mainMenu from '../../fixtures/drupal/menu--main.json' with { type: 'json' };
 import type { JsonApiDocument } from './transport.js';
 
 /** Which backend the current process is talking to. */
@@ -27,8 +28,11 @@ export type DrupalMode = 'live' | 'fixtures';
 export const fixtureSet: FixtureSet = {
   collections: {
     'node/article': articles as unknown as JsonApiDocument,
-    // No menu fixture: core JSON:API cannot expose menus to an anonymous
-    // consumer without over-privileging it. See scripts/snapshot-content.ts.
+  },
+  raw: {
+    // Not a JSON:API resource: served by drupal/modules/custom/nuxt_menu,
+    // because core cannot expose menus to an unprivileged consumer. ADR-003.
+    '/api/menu/main': mainMenu,
   },
 };
 

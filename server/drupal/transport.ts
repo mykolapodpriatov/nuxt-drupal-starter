@@ -139,15 +139,3 @@ export interface DrupalArticleResource extends ResourceObject {
     uid?: Relationship;
   };
 }
-
-/** A single link in a Drupal menu, as `menu_link_content--menu_link_content`. */
-export interface DrupalMenuLinkResource extends ResourceObject {
-  type: string;
-  attributes?: {
-    title?: string;
-    url?: string;
-    weight?: number;
-    enabled?: boolean;
-    parent?: string | null;
-  };
-}

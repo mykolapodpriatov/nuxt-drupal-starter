@@ -32,6 +32,15 @@ export interface FixtureSet {
    * Keys are JSON:API paths without the prefix, e.g. `node/article`.
    */
   collections: Record<string, JsonApiDocument>;
+  /**
+   * Captured responses from endpoints outside JSON:API, keyed by full path —
+   * `/api/menu/main`, for instance.
+   *
+   * Menus need this because they are not a JSON:API resource here: core cannot
+   * expose them to an unprivileged consumer, so they come from a purpose-built
+   * module. See ADR-003.
+   */
+  raw?: Record<string, unknown>;
 }
 
 export interface FixtureFetchOptions {
@@ -175,6 +184,19 @@ export function createFixtureFetch(options: FixtureFetchOptions): typeof globalT
 
     const href = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(href, 'https://fixtures.invalid');
+
+    // Non-JSON:API endpoints are served verbatim from the `raw` map: they have
+    // no collection semantics to emulate, so filtering and pagination do not
+    // apply.
+    if (!url.pathname.startsWith('/jsonapi')) {
+      const captured = fixtures.raw?.[url.pathname];
+      if (captured === undefined) return notFound(`No fixture for ${url.pathname}`);
+      return new Response(JSON.stringify(captured), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
     // Strip the JSON:API prefix to get `node/article` or `node/article/{uuid}`.
     const path = url.pathname.replace(/^\/jsonapi\/?/, '').replace(/^\/+|\/+$/g, '');
 

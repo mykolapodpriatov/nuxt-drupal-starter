@@ -1,0 +1,15 @@
+nuxt_menu.tree:
+  path: '/api/menu/{menu}'
+  defaults:
+    _controller: '\Drupal\nuxt_menu\Controller\MenuTreeController::tree'
+    _title: 'Menu tree'
+  methods: [GET]
+  requirements:
+    # `access content` is the permission a site already grants anonymous users
+    # to read published nodes. Reading navigation is the same class of
+    # operation, and it is several orders of magnitude narrower than the
+    # `administer menu` that core JSON:API demands for `menu_link_content`.
+    _permission: 'access content'
+    menu: '[a-z0-9_-]+'
+  options:
+    no_cache: false

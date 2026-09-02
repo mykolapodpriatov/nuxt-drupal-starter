@@ -8,7 +8,6 @@ import {
   toArticlePath,
   toArticleSummary,
   toDomainImage,
-  toMenuTree,
   toPlainText,
 } from '../server/drupal/normalize.js';
 import type { ResourceObject } from '../server/drupal/transport.js';
@@ -411,78 +410,5 @@ describe('toArticleSummary', () => {
       'summary',
       'title',
     ]);
-  });
-});
-
-describe('toMenuTree', () => {
-  const link = (
-    id: string,
-    title: string,
-    parent: string | null = null,
-    weight = 0,
-    enabled = true,
-  ): ResourceObject => ({
-    type: 'menu_link_content--menu_link_content',
-    id,
-    attributes: { title, url: `/${id}`, parent, weight, enabled },
-  });
-
-  it('nests children under their parent', () => {
-    const tree = toMenuTree([
-      link('about', 'About'),
-      link('team', 'Team', 'menu_link_content:about'),
-    ]);
-    expect(tree).toHaveLength(1);
-    expect(tree[0]?.children[0]?.title).toBe('Team');
-  });
-
-  it('handles a child that arrives before its parent', () => {
-    // Drupal returns links in no guaranteed order.
-    const tree = toMenuTree([
-      link('team', 'Team', 'menu_link_content:about'),
-      link('about', 'About'),
-    ]);
-    expect(tree).toHaveLength(1);
-    expect(tree[0]?.children).toHaveLength(1);
-  });
-
-  it('sorts siblings by weight, not array order', () => {
-    const tree = toMenuTree([
-      link('c', 'Third', null, 10),
-      link('a', 'First', null, -10),
-      link('b', 'Second', null, 0),
-    ]);
-    expect(tree.map((item) => item.title)).toEqual(['First', 'Second', 'Third']);
-  });
-
-  it('sorts nested children by weight too', () => {
-    const tree = toMenuTree([
-      link('root', 'Root'),
-      link('z', 'Last', 'menu_link_content:root', 5),
-      link('a', 'First', 'menu_link_content:root', -5),
-    ]);
-    expect(tree[0]?.children.map((item) => item.title)).toEqual(['First', 'Last']);
-  });
-
-  it('drops disabled links', () => {
-    const tree = toMenuTree([link('a', 'Visible'), link('b', 'Hidden', null, 0, false)]);
-    expect(tree.map((item) => item.title)).toEqual(['Visible']);
-  });
-
-  it('promotes an orphan to the top level rather than losing it', () => {
-    // A parent that is disabled or access-restricted must cost the menu its
-    // nesting, not its navigation.
-    const tree = toMenuTree([link('orphan', 'Orphan', 'menu_link_content:vanished')]);
-    expect(tree).toHaveLength(1);
-    expect(tree[0]?.title).toBe('Orphan');
-  });
-
-  it('treats a link with no parent reference as a root', () => {
-    const tree = toMenuTree([link('a', 'Root', null)]);
-    expect(tree[0]?.children).toEqual([]);
-  });
-
-  it('returns an empty tree for an empty menu', () => {
-    expect(toMenuTree([])).toEqual([]);
   });
 });
