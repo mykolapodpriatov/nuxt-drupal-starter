@@ -22,3 +22,5 @@ drupal/.ddev/.*
 drupal/recipes/
 drupal/.editorconfig
 drupal/.gitattributes
+playwright-report/
+test-results/

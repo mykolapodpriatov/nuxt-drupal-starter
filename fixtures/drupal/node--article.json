@@ -14,7 +14,7 @@
         "status": true,
         "title": "Decoupling Drupal without losing the editorial workflow",
         "created": "2026-09-01T15:28:23+00:00",
-        "changed": "2026-09-02T15:28:23+00:00",
+        "changed": "2026-09-02T17:25:42+00:00",
         "promote": true,
         "sticky": false,
         "default_langcode": true,
@@ -288,7 +288,7 @@
         "filename": "cover-1.jpg",
         "uri": {
           "value": "public://snapshot/cover-1.jpg",
-          "url": "/sites/default/files/snapshot/cover-1.jpg"
+          "url": "/fixtures/media/cover-1.jpg"
         },
         "filemime": "image/jpeg",
         "filesize": 12850,
@@ -317,7 +317,7 @@
         "filename": "cover-2.jpg",
         "uri": {
           "value": "public://snapshot/cover-2.jpg",
-          "url": "/sites/default/files/snapshot/cover-2.jpg"
+          "url": "/fixtures/media/cover-2.jpg"
         },
         "filemime": "image/jpeg",
         "filesize": 12850,
@@ -346,7 +346,7 @@
         "filename": "cover-3.jpg",
         "uri": {
           "value": "public://snapshot/cover-3.jpg",
-          "url": "/sites/default/files/snapshot/cover-3.jpg"
+          "url": "/fixtures/media/cover-3.jpg"
         },
         "filemime": "image/jpeg",
         "filesize": 12850,

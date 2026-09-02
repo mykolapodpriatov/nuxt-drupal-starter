@@ -1,0 +1,11 @@
+{
+  // Same situation as `test/` and `scripts/`: Nuxt generates four TypeScript
+  // projects and this directory belongs to none of them, so type-aware ESLint
+  // cannot parse it. Extending the node project gives Playwright's specs the
+  // Node globals they actually run with.
+  "extends": "../.nuxt/tsconfig.node.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts", "../playwright.config.ts"]
+}

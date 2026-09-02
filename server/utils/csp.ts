@@ -8,40 +8,69 @@
  *
  * It is also the better split on its own terms: this file decides what the
  * policy is, the plugin only decides when to attach it.
+ *
+ * ## Why there is a nonce
+ *
+ * The first version of this file used a flat `script-src 'self'`, on the
+ * reasoning that Nuxt's hydration payload is data rather than code. That was
+ * wrong, and wrong in the worst way: Nuxt emits inline `<script>` blocks to
+ * bootstrap the client, the policy blocked them, and **the application never
+ * hydrated**. Every page rendered and looked correct; nothing was interactive.
+ *
+ * Unit tests passed. The headers were present and looked right. Only a real
+ * browser reported it, as `Executing inline script violates the following
+ * Content Security Policy directive`. It is the clearest argument in this
+ * repository for end-to-end tests that drive an actual browser against an
+ * actual build.
+ *
+ * The fix is a per-request nonce rather than `'unsafe-inline'`. `'unsafe-inline'`
+ * would work and would discard most of the value of having a CSP at all: any
+ * injected `<script>` would then execute too. A nonce permits exactly the
+ * scripts this server emitted.
  */
 
 /**
- * Directives shared by every response.
+ * Build the policy.
  *
- * `'unsafe-inline'` for styles is a deliberate, narrow concession: Vue's scoped
- * styles and the inline `<style>` Nuxt emits during SSR both require it, and
- * removing it would mean either giving up scoped styles or hashing every
- * generated block on every render. Scripts get no such concession.
- *
- * `img-src` allows the Drupal origin at runtime, since that is where every
- * article image is served from — see `buildImageSources`.
+ * @param drupalOrigin
+ *   Origin serving article images, or `null` in fixture mode.
+ * @param nonce
+ *   Per-request nonce, applied to the inline scripts Nuxt emits. Omitting it
+ *   produces a policy with no inline script allowance at all — correct for a
+ *   response that carries no inline script, and fatal for one that does.
  */
-export function buildPolicy(drupalOrigin: string | null): string {
+export function buildPolicy(drupalOrigin: string | null, nonce?: string): string {
   const imageSources = ["'self'", 'data:', 'blob:'];
   if (drupalOrigin) imageSources.push(drupalOrigin);
 
+  const scriptSources = ["'self'"];
+  if (nonce) {
+    scriptSources.push(`'nonce-${nonce}'`);
+    // `strict-dynamic` lets a nonced script load the chunks it needs without
+    // every one of them being enumerated here — which is what makes a nonce
+    // workable alongside code splitting. Browsers that do not support it fall
+    // back to the source list, so `'self'` stays as the safety net.
+    scriptSources.push("'strict-dynamic'");
+  }
+
   return [
     "default-src 'self'",
-    // No 'unsafe-inline' and no 'unsafe-eval'. Nuxt's hydration payload is a
-    // JSON script tag, not executable code, so it does not need either.
-    "script-src 'self'",
+    `script-src ${scriptSources.join(' ')}`,
+    // Inline *styles* are allowed deliberately. Vue's scoped styles and the
+    // inline <style> Nuxt emits during SSR both require it, and removing it
+    // would mean giving up scoped styles or hashing every generated block on
+    // every render. A style cannot execute; a script can.
     "style-src 'self' 'unsafe-inline'",
     `img-src ${imageSources.join(' ')}`,
     "font-src 'self' data:",
-    // The front end talks to its own server routes; the browser never reaches
-    // Drupal directly, which is what keeps the credentials server-side.
+    // The browser talks to this app's own server routes and never to Drupal,
+    // which is what keeps the credentials server-side.
     "connect-src 'self'",
-    // Nothing in this app is a plugin host or a frame parent.
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    // Any absolute http:// URL an editor pasted into body HTML is upgraded
+    // An absolute http:// URL an editor pasted into body HTML is upgraded
     // rather than blocked, so mixed content does not silently break a page.
     'upgrade-insecure-requests',
   ].join('; ');

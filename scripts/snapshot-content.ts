@@ -27,7 +27,23 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDrupalClient, type DrupalQuery } from '../server/drupal/client.js';
 
-const OUTPUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../fixtures/drupal');
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const OUTPUT_DIR = resolve(ROOT, 'fixtures/drupal');
+
+/**
+ * Where captured media files are written, and the path they are served from.
+ *
+ * Fixture mode exists so the app renders with no backend. An article whose
+ * image URL points at a Drupal that is not running renders a broken image —
+ * which looks like a bug in the front end rather than an absent backend, and
+ * is the first thing a reviewer sees.
+ *
+ * So the referenced files are captured too, into `public/`, and the URLs in
+ * the snapshot are rewritten to point at them. A handful of small images is a
+ * small price for a demo that is actually complete.
+ */
+const MEDIA_DIR = resolve(ROOT, 'public/fixtures/media');
+const MEDIA_PUBLIC_PATH = '/fixtures/media';
 
 /**
  * What to capture, and how.
@@ -129,6 +145,51 @@ function sanitize(value: unknown, siteOrigin: string): unknown {
   return result;
 }
 
+/**
+ * Download every file referenced by the captured document and rewrite its URL.
+ *
+ * Only `file--file` resources are followed, and only their `uri.url` — the one
+ * field that names something fetchable.
+ */
+async function captureMedia(
+  document: unknown,
+  baseUrl: string,
+): Promise<{ downloaded: number }> {
+  const included = (document as { included?: { type: string; attributes?: Record<string, unknown> }[] })
+    .included;
+  if (!Array.isArray(included)) return { downloaded: 0 };
+
+  await mkdir(MEDIA_DIR, { recursive: true });
+  let downloaded = 0;
+
+  for (const resource of included) {
+    if (resource.type !== 'file--file') continue;
+    const uri = resource.attributes?.uri as { url?: string } | undefined;
+    const relative = uri?.url;
+    if (typeof relative !== 'string' || !relative) continue;
+
+    const source = relative.startsWith('http') ? relative : `${baseUrl}${relative}`;
+    const filename = relative.split('/').pop();
+    if (!filename) continue;
+
+    try {
+      const response = await fetch(source);
+      if (!response.ok) continue;
+      const bytes = Buffer.from(await response.arrayBuffer());
+      await writeFile(resolve(MEDIA_DIR, filename), bytes);
+      // Point the fixture at the committed copy rather than at a Drupal that
+      // will not be running when the fixture is used.
+      uri.url = `${MEDIA_PUBLIC_PATH}/${filename}`;
+      downloaded += 1;
+    } catch {
+      // A file that cannot be fetched leaves its URL untouched: the article
+      // still renders, without an image.
+    }
+  }
+
+  return { downloaded };
+}
+
 async function main(): Promise<void> {
   const baseUrl = process.env.NUXT_DRUPAL_BASE_URL?.replace(/\/+$/, '');
   if (!baseUrl) {
@@ -181,6 +242,9 @@ async function main(): Promise<void> {
       continue;
     }
 
+    // Media is captured before sanitising, because the URLs have to be
+    // rewritten while they still point at the live site.
+    const { downloaded } = await captureMedia(captured, baseUrl);
     const cleaned = sanitize(captured, baseUrl);
     const path = resolve(OUTPUT_DIR, target.file);
     // Trailing newline and two-space indent so the committed diff is
@@ -190,7 +254,8 @@ async function main(): Promise<void> {
     const count = Array.isArray(captured.data) ? captured.data.length : 1;
     const included = captured.included?.length ?? 0;
     const shape = usedInclude.length ? `include=${usedInclude.join(',')}` : 'no includes';
-    console.log(`${count} resources, ${included} included (${shape}) → ${target.file}`);
+    const media = downloaded > 0 ? `, ${downloaded} media files` : '';
+    console.log(`${count} resources, ${included} included${media} (${shape}) → ${target.file}`);
   }
 
   for (const target of RAW_TARGETS) {

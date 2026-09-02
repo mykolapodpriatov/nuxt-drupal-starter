@@ -1,79 +1,64 @@
 # nuxt-drupal-starter
 
-Production-oriented Nuxt starter for decoupled Drupal: typed JSON:API, preview
-workflows, cache invalidation, Webform integration, media handling and
-deployment-ready SSR.
+Production-oriented Nuxt 4 starter for decoupled Drupal 11: typed JSON:API,
+editor preview, cache invalidation, menus, media and forms — with the backend
+pieces Drupal 11 does not yet have.
 
 [![ci](https://github.com/mykolapodpriatov/nuxt-drupal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/mykolapodpriatov/nuxt-drupal-starter/actions/workflows/ci.yml)
-![Nuxt 4](https://img.shields.io/badge/Nuxt-4.5-00DC82)
+![Nuxt 4.5](https://img.shields.io/badge/Nuxt-4.5-00DC82)
+![Drupal 11](https://img.shields.io/badge/Drupal-11-0678BE)
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6)
+![tests](https://img.shields.io/badge/tests-256%20unit%20%C2%B7%2028%20e2e-brightgreen)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-> **Status: scaffold.** The toolchain, the runtime-config boundary and CI are in
-> place. The Drupal content layer lands over the next pull requests — see
-> [the roadmap](#roadmap).
+![The home page, listing articles from Drupal](./docs/screenshots/home.png)
+
+**[Architecture](./ARCHITECTURE.md) · [Decisions](./docs/adr) ·
+[Quick start](#quick-start) · [Deployment](./docs/deployment.md)**
 
 ---
 
 ## Why this exists
 
-Pairing Drupal with a modern front end is a solved problem in theory and a
-rebuilt-from-scratch problem in practice. Every project ends up writing the
-same four things, and getting the same three of them subtly wrong:
+Pairing Drupal with a modern front end is solved in theory and rebuilt from
+scratch in practice. This starter takes a position on the four things every such
+project gets wrong, and — more usefully — on the four things Drupal 11 currently
+cannot do at all.
 
-- **JSON:API is a graph, not a view model.** Responses arrive normalised, with
-  relationships spread across a top-level `included` array. Rendering straight
-  from that shape couples every component to Drupal's storage model, so a field
-  rename in the CMS breaks a template three layers away.
-- **Preview needs to be authenticated and uncached, at the same time.** Editors
-  expect to see unpublished content; the public must not. That means a server
-  route holding a credential, and cache rules that cannot accidentally serve a
-  draft.
-- **Content changes must invalidate the right paths.** Without it you choose
-  between stale pages and no caching at all.
-- **The credentials must stay on the server.** In Nuxt, the boundary between a
-  server-only secret and a value published to every visitor is one level of
-  indentation in `runtimeConfig`.
+**JSON:API is a graph, not a view model.** Relationships arrive as `{type, id}`
+pointers into a sibling `included` array. Rendering straight from that shape
+couples every component to Drupal's storage model, so a field rename breaks a
+template three layers away. Transport types and domain models are kept separate
+here, bridged by one mapper. ([ADR-001](./docs/adr/001-transport-dto-vs-domain-model.md))
 
-This starter takes a position on each, and documents why in
-[`docs/adr/`](./docs/adr).
+**Four things need a backend module, because contrib has no stable Drupal 11
+release.** This is the current state of the ecosystem, and the main reason this
+repository is worth having:
 
-## Architecture
+| Need | Usual answer | Status | Here |
+|---|---|---|---|
+| Read menus | `jsonapi_menu_items` | no stable D11 release | `nuxt_menu`, ~60 lines |
+| Resolve a URL alias | `decoupled_router` | no stable D11 release | `nuxt_router`, ~50 lines |
+| Accept a form | `webform` | no stable D11 release | `nuxt_contact`, ~50 lines |
+| Preview + invalidation | — | — | `nuxt_preview` |
 
-```
-┌─────────────────────┐
-│       Drupal        │
-│ JSON:API · Webform  │
-└─────────┬───────────┘
-          │  normalised graph, unpublished content, editorial menus
-          ▼
-┌─────────────────────┐
-│ Nuxt server layer   │   credentials live here and nowhere else
-│ auth · validation   │
-│ cache · normalize   │
-└─────────┬───────────┘
-          │  validated, denormalised
-          ▼
-┌─────────────────────┐
-│   Domain models     │   the shape the UI actually wants
-└─────────┬───────────┘
-          ▼
-┌─────────────────────┐
-│    Vue UI · SSR     │
-└─────────────────────┘
-```
+Each is small on purpose. If those modules stabilise, three of these should be
+deleted, and losing them costs nothing.
 
-The transport DTO and the domain model are deliberately separate types. Drupal
-describes `node--article` with an `attributes.body.processed` string; a template
-wants `article.bodyHtml`. Keeping the two apart means a change to the content
-model is absorbed by one mapper instead of rippling through components.
+**Preview must be authenticated and uncached at the same time.** Editors expect
+to see drafts; the public must not. Signed, expiring links with the expiry
+*inside* the signature, constant-time comparison, and failure closed when the
+secret is unset. ([ADR-005](./docs/adr/005-preview-and-revalidation.md))
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full picture.
+**Credentials must stay on the server.** In Nuxt the boundary between a
+server-only secret and a value published to every visitor is one indentation
+level. It is asserted twice: once against the config, once against the bytes in
+the built bundle.
 
 ## Quick start
 
-No Drupal instance is required to run this repository. With `DRUPAL_BASE_URL`
-unset, the app serves a committed fixture snapshot.
+**No Drupal required.** With `NUXT_DRUPAL_BASE_URL` unset, the app serves a
+snapshot captured from a real Drupal 11 — including the images.
 
 ```bash
 corepack enable
@@ -84,55 +69,96 @@ pnpm dev
 Against a live backend:
 
 ```bash
-cp .env.example .env
-# set NUXT_DRUPAL_BASE_URL, then
+cp .env.example .env    # set NUXT_DRUPAL_BASE_URL
 pnpm dev
 ```
+
+To build the reference backend the snapshot came from — requires DDEV and
+Docker:
+
+```bash
+cd drupal && ./setup.sh
+```
+
+## What it does
+
+| | |
+|---|---|
+| ![Article listing](./docs/screenshots/articles.png) | ![An article at its Drupal alias](./docs/screenshots/article.png) |
+| **Listing** — paginated, cursor in the URL so a page is linkable | **Article** — at whatever alias the editor chose |
+| ![Preview mode](./docs/screenshots/preview.png) | ![Contact form](./docs/screenshots/contact.png) |
+| **Preview** — signed link, unpublished content, never cached or indexed | **Contact** — validated on both sides, honeypot, rate-limited |
+
+Also: Drupal-driven menus including code-defined links, responsive media with
+intrinsic dimensions, SEO metadata and JSON-LD, a generated sitemap, cache
+invalidation on content save, and a security-headers baseline with a
+per-request CSP nonce.
 
 ## Verification
 
 ```bash
-pnpm verify   # lint + typecheck + tests + build — exactly what CI runs
+pnpm verify      # lint + typecheck + unit tests + build — what CI runs
+pnpm test:e2e    # Playwright against a production build, including axe
+pnpm test:scan   # scan the built bundle for leaked secrets
 ```
 
-CI runs lint, typecheck and tests as three parallel jobs, then builds from the
-result. Tests run on Node 22 and 24.
-
-## Roadmap
-
-- [x] Scaffold: Nuxt 4, TypeScript strict, type-aware ESLint, Vitest, CI
-- [ ] Typed JSON:API client, runtime validation, `included` normalizer
-- [ ] Fixture snapshot and backend-free mode
-- [ ] Pages, Drupal-driven menus, responsive media, SEO
-- [ ] Preview route and cache invalidation webhook
-- [ ] Webform, i18n, security headers, accessibility baseline
-- [ ] Playwright end-to-end tests and a deployed demo
+CI runs lint, typecheck and unit tests as three parallel jobs on Node 22 and 24,
+then builds, then scans the bundle, then runs the browser suite.
 
 ## Design notes
 
-**Why `swr` and not "ISR".** Nuxt has its own rendering vocabulary — SSR,
-prerender, `swr`, route rules — and provider-specific incremental regeneration
-sits on top of it. Borrowing Next.js terminology one-for-one would describe
-behaviour this app does not have. Route rules say what they mean:
+The decisions worth knowing before reading the code. Each has an ADR.
 
-```ts
-'/articles/**': { swr: 3600 },       // cached, revalidated in the background
-'/preview/**':  { ssr: true, headers: { 'cache-control': 'no-store' } },
+**Fixtures are captured, not written.** Writing the mappers from the spec
+produced two wrong assumptions — `field_image` on core's article recipe points
+straight at `file--file` rather than through a media entity, and alt text lives
+on the *relationship*, not the file. Both render as "this article has no image",
+indistinguishable from one that has none. Hand-written fixtures would have been
+written from the same wrong assumptions.
+([ADR-002](./docs/adr/002-fixture-snapshot-vs-live-backend.md))
+
+**JSON:API cannot resolve a URL alias.** `path` is a computed field. Both
+plausible spellings fail, and differently:
+
+```
+filter[path.alias]=/blog/hello   → 500  "'path' not found"
+filter[path][alias]=/blog/hello  → 400  "You must provide a valid filter condition."
+filter[status]=1                 → 200  ✓
 ```
 
-**Why the runtime-config boundary is a test.** Nuxt exposes
-`runtimeConfig.public` to the browser and keeps every other key server-side.
-Moving `token` two spaces to the right ships a credential to every visitor, and
-neither the type system nor the build objects. So it is asserted:
-[`test/runtime-config.spec.ts`](./test/runtime-config.spec.ts) fails if any
-Drupal setting appears under `public`, if a key name looks like a credential, or
-if the preview route ever gains a cache rule.
+That last line is what makes it confusing until the computed-field distinction
+lands. ([ADR-004](./docs/adr/004-path-resolution.md))
 
-**Why type-aware linting covers `.ts` but not `.vue`.** The rules worth having
-— `no-explicit-any`, `no-floating-promises` — need type information, which is
-brittle to obtain through `vue-eslint-parser` for SFC templates. Components are
-still fully type-checked: `pnpm typecheck` runs `vue-tsc` across the whole
-project. See [`docs/testing.md`](./docs/testing.md).
+**Menus need `administer menu` — and would still be incomplete.** Core JSON:API
+serves *entities*, and links defined in code by a module (`standard.front_page`,
+the "Home" item on a stock Drupal) have no `menu_link_content` record. A
+fully-privileged consumer still renders a navigation missing exactly the items
+nobody thinks to check. ([ADR-003](./docs/adr/003-menu-endpoint.md))
+
+**JSON:API stays read-only.** `read_only: false` is global: switching it off to
+accept a contact form opens the write surface of every entity type the requester
+can touch, to anyone who finds the endpoint.
+([ADR-006](./docs/adr/006-writes-and-security-headers.md))
+
+**Two bugs that only a browser could find.** Both are recorded because they are
+the argument for end-to-end tests against a real build:
+
+- A Nitro plugin registered without `defineNitroPlugin` loads and never fires
+  its hooks. Every security header was silently missing.
+- `script-src 'self'` blocks Nuxt's inline bootstrap, so **the application never
+  hydrated**. Every page rendered correctly and nothing was interactive. Fixed
+  with a per-request nonce rather than `'unsafe-inline'`.
+
+Unit tests passed throughout. The headers were present and looked right.
+
+**Nothing is prerendered.** A prerendered route is served by the static handler,
+so Nitro's render hooks never run — the security headers were absent on the most
+public page in the app — and a per-request nonce baked into a static file is a
+constant.
+
+**Type-aware linting covers `.ts` but not `.vue`.** The rules worth having need
+type information, which is brittle through `vue-eslint-parser` for SFC
+templates. Components are still fully type-checked by `vue-tsc`.
 
 ## License
 
