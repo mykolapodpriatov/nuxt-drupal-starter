@@ -1,0 +1,8 @@
+services:
+  nuxt_preview.signer:
+    class: Drupal\nuxt_preview\FrontendSigner
+    arguments: ['@settings']
+
+  nuxt_preview.revalidator:
+    class: Drupal\nuxt_preview\Revalidator
+    arguments: ['@http_client', '@settings', '@logger.factory', '@nuxt_preview.signer']

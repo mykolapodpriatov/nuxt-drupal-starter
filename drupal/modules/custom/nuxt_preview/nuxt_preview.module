@@ -1,0 +1,89 @@
+<?php
+
+/**
+ * @file
+ * Signed preview links, and cache invalidation when content changes.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function nuxt_preview_node_insert(NodeInterface $node): void {
+  \Drupal::service('nuxt_preview.revalidator')->revalidateNode($node);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update().
+ *
+ * The previous alias is purged alongside the new one. Renaming a URL otherwise
+ * leaves the old path cached and still serving content that has moved — the
+ * failure mode nobody tests for, because it only appears after an edit that
+ * looked successful.
+ */
+function nuxt_preview_node_update(NodeInterface $node): void {
+  $extra = [];
+
+  $original = $node->original ?? NULL;
+  if ($original instanceof NodeInterface) {
+    $previous = $original->toUrl()->toString();
+    if ($previous !== $node->toUrl()->toString()) {
+      $extra[] = $previous;
+    }
+  }
+
+  \Drupal::service('nuxt_preview.revalidator')->revalidateNode($node, $extra);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ *
+ * A deleted node's URL has to stop being served, and a cached page outlives the
+ * entity that produced it.
+ */
+function nuxt_preview_node_delete(NodeInterface $node): void {
+  \Drupal::service('nuxt_preview.revalidator')->revalidateNode($node);
+}
+
+/**
+ * Implements hook_entity_operation().
+ *
+ * Adds a "Preview on front end" operation to the content list, so an editor
+ * reaches the decoupled preview the same way they reach every other action on a
+ * node — rather than by being told a URL format to assemble by hand.
+ */
+function nuxt_preview_entity_operation(EntityInterface $entity): array {
+  if (!$entity instanceof NodeInterface) {
+    return [];
+  }
+
+  /** @var \Drupal\nuxt_preview\FrontendSigner $signer */
+  $signer = \Drupal::service('nuxt_preview.signer');
+
+  $frontend = $signer->frontendUrl();
+  if ($frontend === NULL) {
+    return [];
+  }
+
+  // Fifteen minutes: long enough to open and read, short enough that a link
+  // pasted into a chat and forgotten stops working on its own.
+  $token = $signer->token($entity->uuid(), 'nuxt_preview_secret', 900);
+  if ($token === NULL) {
+    return [];
+  }
+
+  return [
+    'nuxt_preview' => [
+      'title' => t('Preview on front end'),
+      'weight' => 45,
+      'url' => \Drupal\Core\Url::fromUri(
+        $frontend . '/preview/' . $entity->uuid(),
+        ['query' => ['token' => $token], 'attributes' => ['target' => '_blank']],
+      ),
+    ],
+  ];
+}

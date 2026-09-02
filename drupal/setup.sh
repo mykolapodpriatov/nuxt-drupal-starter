@@ -37,6 +37,7 @@ echo "==> Installing the custom modules"
 mkdir -p web/modules/custom
 cp -R modules/custom/nuxt_menu web/modules/custom/
 cp -R modules/custom/nuxt_router web/modules/custom/
+cp -R modules/custom/nuxt_preview web/modules/custom/
 
 echo "==> Enabling JSON:API (read-only)"
 ddev drush en jsonapi -y
@@ -46,7 +47,26 @@ ddev drush role:perm:add anonymous 'access content' -y
 echo "==> Enabling the menu and path-resolution endpoints"
 # Core JSON:API cannot expose menus to an unprivileged consumer (ADR-003), and
 # cannot filter on `path` at all because it is a computed field (ADR-004).
-ddev drush en nuxt_menu nuxt_router -y
+ddev drush en nuxt_menu nuxt_router nuxt_preview -y
+
+# Preview links and cache invalidation need three settings, and they live in
+# settings.php rather than configuration: config is exported to config/sync and
+# committed, and a secret in git is not a secret.
+if ! grep -q "nuxt_frontend_url" web/sites/default/settings.php; then
+  cat >> web/sites/default/settings.php <<'PHPEOF'
+
+/**
+ * Decoupled front end (nuxt_preview).
+ *
+ * Replace these development values before exposing this instance anywhere.
+ * `host.docker.internal` is how the container reaches a dev server running on
+ * the host; a deployed front end gets its real origin here.
+ */
+$settings['nuxt_frontend_url'] = 'http://host.docker.internal:3000';
+$settings['nuxt_preview_secret'] = 'test-preview-secret';
+$settings['nuxt_revalidate_secret'] = 'test-revalidate-secret';
+PHPEOF
+fi
 
 echo "==> Creating sample content"
 ddev drush php:script scripts/create-articles.php

@@ -1,0 +1,7 @@
+name: 'Nuxt preview'
+type: module
+description: 'Signed preview links into the decoupled front end, and cache invalidation on content save.'
+package: 'Nuxt Drupal Starter'
+core_version_requirement: ^11
+dependencies:
+  - drupal:node
