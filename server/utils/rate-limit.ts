@@ -32,6 +32,16 @@ export function checkRateLimit(
   limit: number,
   windowMs: number,
 ): RateLimitResult {
+  // A non-positive limit or window would otherwise open a window and allow
+  // the first request, then report a negative remaining count.
+  if (limit < 1 || windowMs <= 0) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfter: windowMs > 0 ? Math.ceil(windowMs / 1000) : 1,
+    };
+  }
+
   const now = Date.now();
   const existing = windows.get(key);
 

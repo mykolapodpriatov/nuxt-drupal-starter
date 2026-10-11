@@ -79,7 +79,9 @@ describe('toFieldErrors', () => {
 
   it('produces messages written for a visitor, not a developer', () => {
     const result = contactSchema.safeParse({ ...valid, message: 'hi' });
-    expect(toFieldErrors(result.error!).message).toBe('Please write at least a sentence.');
+    expect(toFieldErrors(result.error!).message).toBe(
+      'Please write at least a sentence.',
+    );
   });
 });
 
@@ -132,6 +134,25 @@ describe('checkRateLimit', () => {
   it('never reports a negative remaining count', () => {
     for (let i = 0; i < 10; i += 1) checkRateLimit('client-a', 2, 60_000);
     expect(checkRateLimit('client-a', 2, 60_000).remaining).toBe(0);
+  });
+
+  it('denies every request when the limit is zero', () => {
+    expect(checkRateLimit('client-a', 0, 60_000)).toEqual({
+      allowed: false,
+      remaining: 0,
+      retryAfter: 60,
+    });
+    // The refusal must not open a window that blocks a real limit later.
+    expect(checkRateLimit('client-a', 1, 60_000).allowed).toBe(true);
+  });
+
+  it('denies every request when the window is not positive', () => {
+    expect(checkRateLimit('client-a', 5, 0)).toEqual({
+      allowed: false,
+      remaining: 0,
+      retryAfter: 1,
+    });
+    expect(checkRateLimit('client-b', 5, -1_000).allowed).toBe(false);
   });
 });
 
