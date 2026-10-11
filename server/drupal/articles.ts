@@ -42,6 +42,18 @@ const PUBLISHED: Record<string, string> = { 'status.value': '1' };
  * information rather than a failure. Anything else propagates: a timeout must
  * not be retried three times and then reported as a missing field.
  */
+function isMissingInclude(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const record = error as { kind?: unknown; detail?: unknown };
+  if (record.kind !== 'http-error') return false;
+  const detail = record.detail;
+  if (typeof detail === 'object' && detail !== null && 'name' in detail) {
+    const name = (detail as { name?: unknown }).name;
+    if (name === 'TimeoutError' || name === 'AbortError') return false;
+  }
+  return true;
+}
+
 async function withIncludeFallback<T>(
   attempt: (include: string[]) => Promise<T>,
 ): Promise<T> {
@@ -50,8 +62,10 @@ async function withIncludeFallback<T>(
     try {
       return await attempt(include);
     } catch (error: unknown) {
-      const status = (error as { kind?: string } | null)?.kind;
-      if (status !== 'http-error') throw error;
+      // A 400 is "that include path does not exist". A timeout is the same
+      // kind (`http-error`) but it is not a missing field: retrying it waits
+      // out the ceiling once per candidate.
+      if (!isMissingInclude(error)) throw error;
       lastError = error;
     }
   }
@@ -154,7 +168,8 @@ export async function getArticleByPath(
     throw error;
   }
 
-  const entity = (resolved as { found?: boolean; entity?: ResolvedEntity } | null)?.entity;
+  const entity = (resolved as { found?: boolean; entity?: ResolvedEntity } | null)
+    ?.entity;
   if (!entity || typeof entity.uuid !== 'string') return null;
 
   // Only articles have a page in this starter. A resolved taxonomy term or user
