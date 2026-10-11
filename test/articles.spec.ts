@@ -12,9 +12,10 @@ function fixtureClient(): DrupalClient {
 }
 
 /** A client that records the queries it was asked to run. */
-function recordingClient(
-  overrides: Partial<DrupalClient> = {},
-): { client: DrupalClient; queries: DrupalQuery[] } {
+function recordingClient(overrides: Partial<DrupalClient> = {}): {
+  client: DrupalClient;
+  queries: DrupalQuery[];
+} {
   const queries: DrupalQuery[] = [];
   const client: DrupalClient = {
     getCollection: (_type, query) => {
@@ -81,7 +82,10 @@ describe('listArticles', () => {
     it('starts with the deepest include path', async () => {
       const { client, queries } = recordingClient();
       await listArticles(client, SITE);
-      expect(queries[0]?.include).toEqual(['field_image', 'field_image.field_media_image']);
+      expect(queries[0]?.include).toEqual([
+        'field_image',
+        'field_image.field_media_image',
+      ]);
     });
 
     it('falls back when Drupal rejects the include path', async () => {
@@ -101,18 +105,30 @@ describe('listArticles', () => {
       });
 
       await listArticles(client, SITE);
-      expect(seen).toEqual([['field_image', 'field_image.field_media_image'], ['field_image']]);
+      expect(seen).toEqual([
+        ['field_image', 'field_image.field_media_image'],
+        ['field_image'],
+      ]);
     });
 
     it('does not retry a timeout as if it were a bad include path', async () => {
-      // Retrying three times and then reporting "no such field" would turn a
-      // slow backend into a confusing content-model error.
+      // The client reports a timeout as http-error, the same kind as a 400.
+      // Retrying it once per include path waits out the ceiling three times.
+      const timeout = Object.assign(new Error('timed out'), { name: 'TimeoutError' });
       const getCollection = vi.fn(() =>
-        Promise.reject(new DrupalResponseError('timed out', 'malformed')),
+        Promise.reject(
+          new DrupalResponseError(
+            'Drupal did not respond within 10000ms',
+            'http-error',
+            timeout,
+          ),
+        ),
       );
       const { client } = recordingClient({ getCollection });
 
-      await expect(listArticles(client, SITE)).rejects.toThrow('timed out');
+      await expect(listArticles(client, SITE)).rejects.toThrow(
+        'Drupal did not respond within 10000ms',
+      );
       expect(getCollection).toHaveBeenCalledTimes(1);
     });
   });
@@ -229,7 +245,9 @@ describe('getArticleByPath', () => {
     const { client } = resolvingClient(() =>
       Promise.reject(new DrupalResponseError('timed out', 'malformed')),
     );
-    await expect(getArticleByPath(client, SITE, '/blog/hello')).rejects.toThrow('timed out');
+    await expect(getArticleByPath(client, SITE, '/blog/hello')).rejects.toThrow(
+      'timed out',
+    );
   });
 
   it('resolves a real alias end to end against the captured snapshot', async () => {
